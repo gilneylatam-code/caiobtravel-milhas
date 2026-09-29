@@ -22,6 +22,71 @@
 <script>
 "use strict";
 const { useState, useEffect, useMemo } = React;
+/* ---------- Ícones (SVG simples, substituindo lucide-react) ---------- */
+const Ic = (path, extra) => ({ size = 16, color = "currentColor", className, style }) => (React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", className: className, style: style },
+    path,
+    extra));
+const Plus = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M12 5v14M5 12h14" })));
+const Trash2 = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M3 6h18" }),
+    React.createElement("path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
+    React.createElement("path", { d: "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" }),
+    React.createElement("path", { d: "M10 11v6M14 11v6" })));
+const TrendingUp = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M3 17l6-6 4 4 8-8" }),
+    React.createElement("path", { d: "M15 7h6v6" })));
+const TrendingDown = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M3 7l6 6 4-4 8 8" }),
+    React.createElement("path", { d: "M15 17h6v-6" })));
+const Plane = Ic(React.createElement("path", { d: "M17.8 19.2 16 11l3.5-3.5a1.5 1.5 0 0 0-2.1-2.1L14 8.9 5.8 7.1l-1.4 1.4L11 12l-3 3H5l-1 1 3 1 1 3 1-1v-3l3-3 3.6 6.6 1.4-1.4Z" }));
+const Loader2 = Ic(React.createElement("path", { d: "M21 12a9 9 0 1 1-9-9" }));
+const Users = Ic(React.createElement(React.Fragment, null,
+    React.createElement("circle", { cx: "9", cy: "8", r: "3" }),
+    React.createElement("path", { d: "M2 20c0-3.3 3-6 7-6s7 2.7 7 6" }),
+    React.createElement("circle", { cx: "17", cy: "9", r: "2.4" }),
+    React.createElement("path", { d: "M22 20c0-2.6-2-4.7-4.5-5" })));
+const X = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M18 6 6 18" }),
+    React.createElement("path", { d: "M6 6l12 12" })));
+const LogOut = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }),
+    React.createElement("path", { d: "M16 17l5-5-5-5" }),
+    React.createElement("path", { d: "M21 12H9" })));
+const LockIcon = Ic(React.createElement(React.Fragment, null,
+    React.createElement("rect", { x: "5", y: "11", width: "14", height: "10", rx: "2" }),
+    React.createElement("path", { d: "M8 11V7a4 4 0 0 1 8 0v4" })));
+const Download = Ic(React.createElement(React.Fragment, null,
+    React.createElement("path", { d: "M12 3v12" }),
+    React.createElement("path", { d: "M7 10l5 5 5-5" }),
+    React.createElement("path", { d: "M5 21h14" })));
+/* ---------- Armazenamento local (substitui window.storage do Claude) ----------
+   Fora do ambiente do Claude, window.storage não existe. Este bloco recria a
+   mesma assinatura (get/set/delete), mas salvando no localStorage do próprio
+   navegador. Isso significa: os dados ficam neste aparelho/navegador — não
+   sincronizam automaticamente com outro dispositivo. */
+window.storage = {
+    async get(key, shared) {
+        const raw = localStorage.getItem("cbv:" + key);
+        if (raw === null)
+            throw new Error("not found");
+        return { key, value: raw, shared: !!shared };
+    },
+    async set(key, value, shared) {
+        localStorage.setItem("cbv:" + key, value);
+        return { key, value, shared: !!shared };
+    },
+    async delete(key, shared) {
+        localStorage.removeItem("cbv:" + key);
+        return { key, deleted: true, shared: !!shared };
+    },
+    async list(prefix, shared) {
+        const keys = Object.keys(localStorage)
+            .filter((k) => k.startsWith("cbv:" + (prefix || "")))
+            .map((k) => k.slice(4));
+        return { keys, prefix, shared: !!shared };
+    },
+};
 /* ---------- Gráficos simples em SVG puro (sem dependências externas) ---------- */
 function MiniBarChart({ data, colorFn, fmt }) {
     if (!data || data.length === 0)
@@ -91,81 +156,6 @@ function MiniHBarChart({ data, color = "#E8A94C" }) {
             React.createElement("div", { style: { width: `${(d.value / max) * 100}%`, background: color, height: 16, borderRadius: 4 } })),
         React.createElement("div", { style: { width: 30, fontSize: 11, color: "#F2F0E9" } }, d.value))))));
 }
-/* ---------- Ícones (SVG simples, substituindo lucide-react) ---------- */
-const Ic = (path, extra) => ({ size = 16, color = "currentColor", className, style }) => (React.createElement("svg", { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", className: className, style: style },
-    path,
-    extra));
-const Plus = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M12 5v14M5 12h14" })));
-const Trash2 = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M3 6h18" }),
-    React.createElement("path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
-    React.createElement("path", { d: "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" }),
-    React.createElement("path", { d: "M10 11v6M14 11v6" })));
-const TrendingUp = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M3 17l6-6 4 4 8-8" }),
-    React.createElement("path", { d: "M15 7h6v6" })));
-const TrendingDown = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M3 7l6 6 4-4 8 8" }),
-    React.createElement("path", { d: "M15 17h6v-6" })));
-const Plane = Ic(React.createElement("path", { d: "M17.8 19.2 16 11l3.5-3.5a1.5 1.5 0 0 0-2.1-2.1L14 8.9 5.8 7.1l-1.4 1.4L11 12l-3 3H5l-1 1 3 1 1 3 1-1v-3l3-3 3.6 6.6 1.4-1.4Z" }));
-const Loader2 = Ic(React.createElement("path", { d: "M21 12a9 9 0 1 1-9-9" }));
-const Robot = Ic(React.createElement(React.Fragment, null,
-    React.createElement("rect", { x: "4", y: "9", width: "16", height: "11", rx: "4" }),
-    React.createElement("circle", { cx: "9", cy: "14.5", r: "1.6", fill: "currentColor", stroke: "none" }),
-    React.createElement("circle", { cx: "15", cy: "14.5", r: "1.6", fill: "currentColor", stroke: "none" }),
-    React.createElement("path", { d: "M12 9V5" }),
-    React.createElement("circle", { cx: "12", cy: "3.5", r: "1.5" }),
-    React.createElement("path", { d: "M4 13H2M22 13h-2" })));
-const Users = Ic(React.createElement(React.Fragment, null,
-    React.createElement("circle", { cx: "9", cy: "8", r: "3" }),
-    React.createElement("path", { d: "M2 20c0-3.3 3-6 7-6s7 2.7 7 6" }),
-    React.createElement("circle", { cx: "17", cy: "9", r: "2.4" }),
-    React.createElement("path", { d: "M22 20c0-2.6-2-4.7-4.5-5" })));
-const X = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M18 6 6 18" }),
-    React.createElement("path", { d: "M6 6l12 12" })));
-const LogOut = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }),
-    React.createElement("path", { d: "M16 17l5-5-5-5" }),
-    React.createElement("path", { d: "M21 12H9" })));
-const LockIcon = Ic(React.createElement(React.Fragment, null,
-    React.createElement("rect", { x: "5", y: "11", width: "14", height: "10", rx: "2" }),
-    React.createElement("path", { d: "M8 11V7a4 4 0 0 1 8 0v4" })));
-const Download = Ic(React.createElement(React.Fragment, null,
-    React.createElement("path", { d: "M12 3v12" }),
-    React.createElement("path", { d: "M7 10l5 5 5-5" }),
-    React.createElement("path", { d: "M5 21h14" })));
-const SheetIcon = Ic(React.createElement(React.Fragment, null,
-    React.createElement("rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }),
-    React.createElement("path", { d: "M3 9h18M3 15h18M9 3v18M15 3v18" })));
-/* ---------- Armazenamento local (substitui window.storage do Claude) ----------
-   Fora do ambiente do Claude, window.storage não existe. Este bloco recria a
-   mesma assinatura (get/set/delete), mas salvando no localStorage do próprio
-   navegador. Isso significa: os dados ficam neste aparelho/navegador — não
-   sincronizam automaticamente com outro dispositivo. */
-window.storage = {
-    async get(key, shared) {
-        const raw = localStorage.getItem("cbv:" + key);
-        if (raw === null)
-            throw new Error("not found");
-        return { key, value: raw, shared: !!shared };
-    },
-    async set(key, value, shared) {
-        localStorage.setItem("cbv:" + key, value);
-        return { key, value, shared: !!shared };
-    },
-    async delete(key, shared) {
-        localStorage.removeItem("cbv:" + key);
-        return { key, deleted: true, shared: !!shared };
-    },
-    async list(prefix, shared) {
-        const keys = Object.keys(localStorage)
-            .filter((k) => k.startsWith("cbv:" + (prefix || "")))
-            .map((k) => k.slice(4));
-        return { keys, prefix, shared: !!shared };
-    },
-};
 
 "use strict";
 const ENTRIES_KEY = "milhas-latam:entries";
@@ -175,40 +165,12 @@ const PARCEIROS_KEY = "milhas-latam:parceiros";
 const COMISSOES_KEY = "milhas-latam:comissoes";
 const CONTAS_LIVELO_KEY = "milhas-latam:contas-livelo";
 const OWNER_SESSION_KEY = "milhas-latam:owner-session";
-// Preencha com o link do seu WhatsApp quando tiver, ex: "https://wa.me/5585999999999"
-// Enquanto estiver vazio, o botão de WhatsApp não aparece nas telas de ajuda.
-const WHATSAPP_URL = "";
+const PARCEIRO_SESSION_KEY = "milhas-latam:parceiro-session";
 // Gerador de id sem depender de crypto.randomUUID (que falha em alguns
 // navegadores/webviews e era a causa do botão "Lançar operação" não
 // funcionar em certos ambientes).
 function genId() {
     return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
-}
-/* ---------- Autenticação segura (hash de senha, nunca texto puro) ---------- */
-function bytesToHex(bytes) {
-    return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-function hexToBytes(hex) {
-    const arr = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < arr.length; i++)
-        arr[i] = parseInt(hex.substr(i * 2, 2), 16);
-    return arr;
-}
-function cryptoDisponivel() {
-    return !!(window.crypto && window.crypto.subtle);
-}
-async function hashSenha(senha, saltHex) {
-    const enc = new TextEncoder();
-    const salt = saltHex ? hexToBytes(saltHex) : window.crypto.getRandomValues(new Uint8Array(16));
-    const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(senha), { name: "PBKDF2" }, false, ["deriveBits"]);
-    const bits = await window.crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 120000, hash: "SHA-256" }, keyMaterial, 256);
-    return { hash: bytesToHex(new Uint8Array(bits)), salt: bytesToHex(salt) };
-}
-async function verificarSenha(senha, hash, saltHex) {
-    if (!hash || !saltHex)
-        return false;
-    const tentativa = await hashSenha(senha, saltHex);
-    return tentativa.hash === hash;
 }
 const fmtBRL = (v) => (isFinite(v) ? v : 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v) => (isFinite(v) ? v : 0).toLocaleString("pt-BR");
@@ -238,11 +200,11 @@ const emptyForm = {
 };
 const emptyTitularForm = { nome: "", cpf: "" };
 const emptyOwnerForm = { nome: "", email: "", senha: "", confirmarSenha: "" };
-const emptyLoginForm = { email: "", senha: "" };
+const emptyLoginForm = { email: "redmilhasplus@gmail.com", senha: "C@io020594" };
 const emptyParceiroForm = { nome: "", email: "", senha: "" };
+const emptyParceiroLoginForm = { email: "", senha: "" };
 const emptyParceiroRegisterForm = { nome: "", email: "", senha: "", confirmarSenha: "" };
-const emptyComissaoForm = { parceiroId: "", tipo: "cadastro", valor: "50", data: "", nomeIndicado: "" };
-const SHEETS_WEBHOOK_KEY = "milhas-latam:sheets-webhook";
+const emptyComissaoForm = { parceiroId: "", tipo: "cadastro", valor: "50", data: "" };
 const emptyContaLiveloForm = { nome: "", cpf: "", parceiroId: "", senhaConta: "" };
 const VALOR_PADRAO = { cadastro: "50", indicacao: "10" };
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -255,14 +217,15 @@ function ControleMilhasLatam() {
     const [parceiros, setParceiros] = useState([]);
     const [comissoes, setComissoes] = useState([]);
     const [contasLivelo, setContasLivelo] = useState([]);
+    const [accessChoice, setAccessChoice] = useState(null); // null | 'owner' | 'parceiro'
     const [forceLoginNoOwner, setForceLoginNoOwner] = useState(false);
     const [parceiroAuthed, setParceiroAuthed] = useState(null);
     const [form, setForm] = useState(emptyForm);
     const [titularForm, setTitularForm] = useState(emptyTitularForm);
     const [ownerForm, setOwnerForm] = useState(emptyOwnerForm);
     const [loginForm, setLoginForm] = useState(emptyLoginForm);
-    const [loginLoading, setLoginLoading] = useState(false);
     const [parceiroForm, setParceiroForm] = useState(emptyParceiroForm);
+    const [parceiroLoginForm, setParceiroLoginForm] = useState(emptyParceiroLoginForm);
     const [parceiroRegisterForm, setParceiroRegisterForm] = useState(emptyParceiroRegisterForm);
     const [parceiroAuthMode, setParceiroAuthMode] = useState("login"); // 'login' | 'cadastro'
     const [comissaoForm, setComissaoForm] = useState(emptyComissaoForm);
@@ -273,22 +236,29 @@ function ControleMilhasLatam() {
     const [ownerError, setOwnerError] = useState("");
     const [loginError, setLoginError] = useState("");
     const [parceiroError, setParceiroError] = useState("");
+    const [parceiroLoginError, setParceiroLoginError] = useState("");
     const [parceiroRegisterError, setParceiroRegisterError] = useState("");
     const [comissaoError, setComissaoError] = useState("");
     const [contaLiveloError, setContaLiveloError] = useState("");
     const [senhasReveladas, setSenhasReveladas] = useState({});
-    const [showForgotHelp, setShowForgotHelp] = useState(false);
+    const [confirmReset, setConfirmReset] = useState(false);
     const [showTitulares, setShowTitulares] = useState(false);
     const [showParceiros, setShowParceiros] = useState(false);
     const [showContasLivelo, setShowContasLivelo] = useState(false);
-    const [showSheetsPanel, setShowSheetsPanel] = useState(false);
-    const [sheetsWebhook, setSheetsWebhook] = useState(() => localStorage.getItem(SHEETS_WEBHOOK_KEY) || "");
-    const [sheetsSavedMsg, setSheetsSavedMsg] = useState("");
+    const [linkCopiado, setLinkCopiado] = useState(false);
+    const [refParceiroId] = useState(() => {
+        try {
+            return new URLSearchParams(window.location.search).get("ref") || "";
+        }
+        catch (e) {
+            return "";
+        }
+    });
     const [anoSelecionado, setAnoSelecionado] = useState("");
     useEffect(() => {
         (async () => {
             try {
-                const [entriesRes, titularesRes, ownerRes, parceirosRes, comissoesRes, contasLiveloRes, ownerSessionRes] = await Promise.all([
+                const [entriesRes, titularesRes, ownerRes, parceirosRes, comissoesRes, contasLiveloRes, ownerSessionRes, parceiroSessionRes] = await Promise.all([
                     window.storage.get(ENTRIES_KEY, false).catch(() => null),
                     window.storage.get(TITULARES_KEY, false).catch(() => null),
                     window.storage.get(OWNER_KEY, false).catch(() => null),
@@ -296,23 +266,14 @@ function ControleMilhasLatam() {
                     window.storage.get(COMISSOES_KEY, false).catch(() => null),
                     window.storage.get(CONTAS_LIVELO_KEY, false).catch(() => null),
                     window.storage.get(OWNER_SESSION_KEY, false).catch(() => null),
+                    window.storage.get(PARCEIRO_SESSION_KEY, false).catch(() => null),
                 ]);
                 if (entriesRes && entriesRes.value)
                     setEntries(JSON.parse(entriesRes.value));
                 if (titularesRes && titularesRes.value)
                     setTitulares(JSON.parse(titularesRes.value));
                 if (ownerRes && ownerRes.value) {
-                    let ownerData = JSON.parse(ownerRes.value);
-                    // migração: cadastros antigos guardavam a senha em texto puro — convertemos para hash agora
-                    if (ownerData.senha && !ownerData.passwordHash && cryptoDisponivel()) {
-                        const { hash, salt } = await hashSenha(ownerData.senha);
-                        ownerData = { nome: ownerData.nome, email: ownerData.email, passwordHash: hash, salt, role: "admin" };
-                        try {
-                            await window.storage.set(OWNER_KEY, JSON.stringify(ownerData), false);
-                        }
-                        catch (e) { /* segue mesmo se não conseguir persistir a migração agora */ }
-                    }
-                    setOwner(ownerData);
+                    setOwner(JSON.parse(ownerRes.value));
                     // "Sessão lembrada" — só neste navegador/aparelho. Outros visitantes não têm
                     // essa marca salva e continuam vendo a tela normal de login.
                     if (ownerSessionRes && ownerSessionRes.value === "true") {
@@ -320,24 +281,11 @@ function ControleMilhasLatam() {
                     }
                 }
                 else {
-                    const senhaPadrao = "C@io020594";
-                    let ownerPadrao;
-                    if (cryptoDisponivel()) {
-                        const { hash, salt } = await hashSenha(senhaPadrao);
-                        ownerPadrao = {
-                            nome: "Caio Bruno Norberto Alves",
-                            email: "redmilhasplus@gmail.com",
-                            passwordHash: hash,
-                            salt,
-                            role: "admin",
-                        };
-                    }
-                    else {
-                        // conexão insegura (sem HTTPS): entra nesta sessão, mas avisa que o
-                        // cadastro seguro só é salvo quando o acesso for por HTTPS
-                        setError("Acesse por HTTPS para que o login do administrador seja salvo com segurança.");
-                        ownerPadrao = { nome: "Caio Bruno Norberto Alves", email: "redmilhasplus@gmail.com", role: "admin" };
-                    }
+                    const ownerPadrao = {
+                        nome: "Caio Bruno Norberto Alves",
+                        email: "redmilhasplus@gmail.com",
+                        senha: "C@io020594",
+                    };
                     try {
                         await window.storage.set(OWNER_KEY, JSON.stringify(ownerPadrao), false);
                         await window.storage.set(OWNER_SESSION_KEY, "true", false);
@@ -348,23 +296,15 @@ function ControleMilhasLatam() {
                     setOwner(ownerPadrao);
                     setAuthed(true);
                 }
+                let parceirosCarregados = [];
                 if (parceirosRes && parceirosRes.value) {
-                    let parceirosData = JSON.parse(parceirosRes.value);
-                    // migração: parceiros antigos guardavam a senha em texto puro — convertemos para hash agora
-                    if (cryptoDisponivel() && parceirosData.some((p) => p.senha && !p.passwordHash)) {
-                        parceirosData = await Promise.all(parceirosData.map(async (p) => {
-                            if (p.senha && !p.passwordHash) {
-                                const { hash, salt } = await hashSenha(p.senha);
-                                return { id: p.id, nome: p.nome, email: p.email, passwordHash: hash, salt, role: "parceiro" };
-                            }
-                            return p;
-                        }));
-                        try {
-                            await window.storage.set(PARCEIROS_KEY, JSON.stringify(parceirosData), false);
-                        }
-                        catch (e) { /* segue mesmo se não conseguir persistir a migração agora */ }
-                    }
-                    setParceiros(parceirosData);
+                    parceirosCarregados = JSON.parse(parceirosRes.value);
+                    setParceiros(parceirosCarregados);
+                }
+                if (parceiroSessionRes && parceiroSessionRes.value) {
+                    const meuParceiro = parceirosCarregados.find((p) => p.id === parceiroSessionRes.value);
+                    if (meuParceiro)
+                        setParceiroAuthed(meuParceiro);
                 }
                 if (comissoesRes && comissoesRes.value)
                     setComissoes(JSON.parse(comissoesRes.value));
@@ -477,7 +417,7 @@ function ControleMilhasLatam() {
             setComissaoError("Não foi possível salvar a comissão. Tente novamente.");
         }
     }
-    async function addParceiro(ev) {
+    function addParceiro(ev) {
         if (ev && ev.preventDefault)
             ev.preventDefault();
         const nome = parceiroForm.nome.trim();
@@ -495,62 +435,29 @@ function ControleMilhasLatam() {
             setParceiroError("Já existe um parceiro cadastrado com esse email.");
             return;
         }
-        if (!cryptoDisponivel()) {
-            setParceiroError("Acesse por HTTPS para cadastrar parceiros com senha segura.");
-            return;
-        }
-        const { hash, salt } = await hashSenha(senha);
-        const next = [...parceiros, { id: genId(), nome, email, passwordHash: hash, salt, role: "parceiro" }];
+        const next = [...parceiros, { id: genId(), nome, email, senha }];
         persistParceiros(next);
         setParceiroForm(emptyParceiroForm);
     }
     function removeParceiro(id) {
         persistParceiros(parceiros.filter((p) => p.id !== id));
     }
-    async function handleLogin(ev) {
+    function loginParceiro(ev) {
         if (ev && ev.preventDefault)
             ev.preventDefault();
-        setLoginError("");
-        const email = loginForm.email.trim().toLowerCase();
-        const senha = loginForm.senha;
-        if (!email || !senha) {
-            setLoginError("Informe e-mail e senha.");
-            return;
+        const email = parceiroLoginForm.email.trim().toLowerCase();
+        const match = parceiros.find((p) => p.email.toLowerCase() === email && p.senha === parceiroLoginForm.senha);
+        if (match) {
+            setParceiroAuthed(match);
+            setParceiroLoginError("");
+            setParceiroLoginForm(emptyParceiroLoginForm);
+            window.storage.set(PARCEIRO_SESSION_KEY, match.id, false).catch(() => { });
         }
-        if (!cryptoDisponivel()) {
-            setLoginError("Este navegador não liberou o login seguro nesta conexão. Acesse o sistema por HTTPS.");
-            return;
+        else {
+            setParceiroLoginError("Email ou senha incorretos.");
         }
-        setLoginLoading(true);
-        try {
-            if (owner && email === owner.email.toLowerCase() && owner.passwordHash) {
-                const ok = await verificarSenha(senha, owner.passwordHash, owner.salt);
-                if (ok) {
-                    setAuthed(true);
-                    setLoginForm(emptyLoginForm);
-                    window.storage.set(OWNER_SESSION_KEY, "true", false).catch(() => { });
-                    setLoginLoading(false);
-                    return;
-                }
-            }
-            const parceiro = parceiros.find((p) => p.email.toLowerCase() === email);
-            if (parceiro && parceiro.passwordHash) {
-                const ok = await verificarSenha(senha, parceiro.passwordHash, parceiro.salt);
-                if (ok) {
-                    setParceiroAuthed(parceiro);
-                    setLoginForm(emptyLoginForm);
-                    setLoginLoading(false);
-                    return;
-                }
-            }
-            setLoginError("E-mail ou senha incorretos.");
-        }
-        catch (e) {
-            setLoginError("Não foi possível entrar agora. Tente novamente.");
-        }
-        setLoginLoading(false);
     }
-    async function registerParceiro(ev) {
+    function registerParceiro(ev) {
         if (ev && ev.preventDefault)
             ev.preventDefault();
         const nome = parceiroRegisterForm.nome.trim();
@@ -572,17 +479,16 @@ function ControleMilhasLatam() {
             setParceiroRegisterError("Já existe um cadastro com esse email. Faça login em vez disso.");
             return;
         }
-        if (!cryptoDisponivel()) {
-            setParceiroRegisterError("Acesse por HTTPS para criar um cadastro com senha segura.");
-            return;
-        }
-        const { hash, salt } = await hashSenha(senha);
-        const novoParceiro = { id: genId(), nome, email, passwordHash: hash, salt, role: "parceiro" };
+        const novoParceiro = { id: genId(), nome, email, senha };
         const next = [...parceiros, novoParceiro];
         persistParceiros(next);
         setParceiroAuthed(novoParceiro);
         setParceiroRegisterError("");
         setParceiroRegisterForm(emptyParceiroRegisterForm);
+        window.storage.set(PARCEIRO_SESSION_KEY, novoParceiro.id, false).catch(() => { });
+        if (refParceiroId && refParceiroId !== novoParceiro.id && parceiros.some((p) => p.id === refParceiroId)) {
+            lancarComissaoRapida(refParceiroId, "indicacao");
+        }
     }
     function addComissao(ev) {
         if (ev && ev.preventDefault)
@@ -595,37 +501,19 @@ function ControleMilhasLatam() {
             setComissaoError("Preencha o valor e a data.");
             return;
         }
-        const parceiroSel = parceiros.find((p) => p.id === comissaoForm.parceiroId);
-        const novaComissao = {
-            id: genId(),
-            parceiroId: comissaoForm.parceiroId,
-            tipo: comissaoForm.tipo,
-            valor: Number(comissaoForm.valor) || 0,
-            data: comissaoForm.data,
-            nomeIndicado: comissaoForm.nomeIndicado.trim(),
-            pago: false,
-        };
-        const next = [...comissoes, novaComissao];
+        const next = [
+            ...comissoes,
+            {
+                id: genId(),
+                parceiroId: comissaoForm.parceiroId,
+                tipo: comissaoForm.tipo,
+                valor: Number(comissaoForm.valor) || 0,
+                data: comissaoForm.data,
+                pago: false,
+            },
+        ];
         persistComissoes(next);
-        syncComissaoToSheets(novaComissao, parceiroSel ? parceiroSel.nome : "");
         setComissaoForm(Object.assign(Object.assign({}, emptyComissaoForm), { parceiroId: comissaoForm.parceiroId }));
-    }
-    function syncComissaoToSheets(comissao, nomeParceiro) {
-        const webhookUrl = localStorage.getItem(SHEETS_WEBHOOK_KEY);
-        if (!webhookUrl)
-            return;
-        fetch(webhookUrl, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({
-                data: comissao.data,
-                parceiro: nomeParceiro,
-                tipo: comissao.tipo === "cadastro" ? "Cadastro" : "Indicação",
-                valor: comissao.valor,
-                indicado: comissao.nomeIndicado || "",
-            }),
-        }).catch(() => {});
     }
     function toggleComissaoPaga(id) {
         persistComissoes(comissoes.map((c) => (c.id === id ? Object.assign(Object.assign({}, c), { pago: !c.pago }) : c)));
@@ -704,6 +592,18 @@ function ControleMilhasLatam() {
     }
     function toggleSenhaRevelada(id) {
         setSenhasReveladas((prev) => (Object.assign(Object.assign({}, prev), { [id]: !prev[id] })));
+    }
+    function copiarLinkAfiliado() {
+        if (!parceiroAuthed)
+            return;
+        const link = window.location.origin + window.location.pathname + "?ref=" + parceiroAuthed.id;
+        const marcarCopiado = () => {
+            setLinkCopiado(true);
+            setTimeout(() => setLinkCopiado(false), 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(marcarCopiado).catch(() => { });
+        }
     }
     function exportExcel() {
         const dataHoje = new Date().toLocaleDateString("pt-BR");
@@ -812,12 +712,7 @@ function ControleMilhasLatam() {
             setOwnerError("As senhas não coincidem.");
             return;
         }
-        if (!cryptoDisponivel()) {
-            setOwnerError("Acesse por HTTPS para criar o cadastro com senha segura.");
-            return;
-        }
-        const { hash, salt } = await hashSenha(senha);
-        const newOwner = { nome, email, passwordHash: hash, salt, role: "admin" };
+        const newOwner = { nome, email, senha };
         let salvouDeVerdade = false;
         try {
             const res = await window.storage.set(OWNER_KEY, JSON.stringify(newOwner), false);
@@ -835,6 +730,42 @@ function ControleMilhasLatam() {
         if (!salvouDeVerdade) {
             setError("Aviso: seu cadastro está ativo nesta sessão, mas não foi possível salvá-lo de forma permanente agora.");
         }
+    }
+    function login(ev) {
+        if (ev && ev.preventDefault)
+            ev.preventDefault();
+        if (!owner)
+            return;
+        const email = loginForm.email.trim().toLowerCase();
+        if (email === owner.email && loginForm.senha === owner.senha) {
+            setAuthed(true);
+            setLoginError("");
+            setLoginForm(emptyLoginForm);
+            window.storage.set(OWNER_SESSION_KEY, "true", false).catch(() => { });
+        }
+        else {
+            setLoginError("Email ou senha incorretos.");
+        }
+    }
+    async function resetOwner() {
+        try {
+            await window.storage.delete(OWNER_KEY, false);
+        }
+        catch (e) {
+            // segue mesmo se a chave já não existir
+        }
+        try {
+            await window.storage.delete(OWNER_SESSION_KEY, false);
+        }
+        catch (e) {
+            // segue mesmo se a chave já não existir
+        }
+        setOwner(null);
+        setAuthed(false);
+        setConfirmReset(false);
+        setOwnerForm(emptyOwnerForm);
+        setLoginForm(emptyLoginForm);
+        setAccessChoice(null);
     }
     const rows = useMemo(() => entries.map(computeRow).sort((a, b) => (a.data > b.data ? 1 : -1)), [entries]);
     const totals = useMemo(() => {
@@ -925,7 +856,7 @@ function ControleMilhasLatam() {
             React.createElement("div", { style: styles.authCard },
                 React.createElement("div", { style: styles.authHeader },
                     React.createElement("div", { style: styles.tower },
-                        React.createElement(Robot, { size: 20, color: "#0F1428" })),
+                        React.createElement(Plane, { size: 20, color: "#0F1428" })),
                     React.createElement("div", null,
                         React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
                         React.createElement("p", { style: styles.subtitle }, "Login"))),
@@ -940,7 +871,7 @@ function ControleMilhasLatam() {
             React.createElement("div", { style: styles.authCard },
                 React.createElement("div", { style: styles.authHeader },
                     React.createElement("div", { style: styles.tower },
-                        React.createElement(Robot, { size: 20, color: "#0F1428" })),
+                        React.createElement(Plane, { size: 20, color: "#0F1428" })),
                     React.createElement("div", null,
                         React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
                         React.createElement("p", { style: styles.subtitle }, "Cadastro do dono do sistema"))),
@@ -972,7 +903,7 @@ function ControleMilhasLatam() {
             React.createElement("div", { style: styles.authCard },
                 React.createElement("div", { style: styles.authHeader },
                     React.createElement("div", { style: styles.tower },
-                        React.createElement(Robot, { size: 20, color: "#0F1428" })),
+                        React.createElement(Plane, { size: 20, color: "#0F1428" })),
                     React.createElement("div", null,
                         React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
                         React.createElement("p", { style: styles.subtitle },
@@ -988,6 +919,14 @@ function ControleMilhasLatam() {
                     React.createElement("div", { style: styles.boardStat },
                         React.createElement("div", { style: Object.assign(Object.assign({}, styles.boardValue), { color: "#E8604C" }) }, fmtBRL(meusDados.pendente)),
                         React.createElement("div", { style: styles.boardLabel }, "A RECEBER"))),
+                React.createElement("div", { style: styles.divider }, "SEU LINK DE INDICA\u00C7\u00C3O"),
+                React.createElement("p", { style: { margin: "0 0 8px", fontSize: 12, color: "#8891B3" } },
+                    "Compartilhe esse link \u2014 quando algu\u00E9m se cadastrar por ele, voc\u00EA ganha ",
+                    fmtBRL(Number(VALOR_PADRAO.indicacao)),
+                    " de comiss\u00E3o."),
+                React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 4 } },
+                    React.createElement("input", { style: Object.assign(Object.assign({}, styles.input), { fontFamily: "'IBM Plex Mono', monospace", fontSize: 11.5 }), readOnly: true, value: typeof window !== "undefined" ? window.location.origin + window.location.pathname + "?ref=" + parceiroAuthed.id : "", onFocus: (e) => e.target.select() }),
+                    React.createElement("button", { type: "button", style: Object.assign(Object.assign({}, styles.titularToggle), { flexShrink: 0 }), onClick: copiarLinkAfiliado }, linkCopiado ? "Copiado!" : "Copiar")),
                 React.createElement("div", { style: styles.divider }, "MINHAS CONTAS LIVELO"),
                 React.createElement("div", { style: styles.form },
                     React.createElement(Field, { label: "Nome da conta" },
@@ -1019,20 +958,69 @@ function ControleMilhasLatam() {
                             fmtBRL(c.valor)),
                         React.createElement("div", { style: styles.titularCpf }, c.data)),
                     React.createElement("span", { style: Object.assign(Object.assign({}, styles.statusTag), (c.pago ? styles.statusPago : styles.statusPendente)) }, c.pago ? "Pago" : "Pendente")))))),
-                React.createElement("button", { type: "button", style: Object.assign(Object.assign({}, styles.titularToggle), { marginTop: 16, width: "100%", justifyContent: "center" }), onClick: () => { setParceiroAuthed(null); setParceiroAuthMode("login"); } },
+                React.createElement("button", { type: "button", style: Object.assign(Object.assign({}, styles.titularToggle), { marginTop: 16, width: "100%", justifyContent: "center" }), onClick: () => { setParceiroAuthed(null); setParceiroAuthMode("login"); window.storage.delete(PARCEIRO_SESSION_KEY, false).catch(() => { }); } },
                     React.createElement(LogOut, { size: 14 }),
                     " Sair"))));
     }
     // TELA 2 — dono cadastrado, mas ninguém autenticado nesta sessão ainda
     if (!authed) {
-        // TELA 2b — cadastro de novo parceiro (colaborador entra sempre como role "parceiro")
+        // TELA 2a — escolher tipo de acesso
+        if (!accessChoice) {
+            return (React.createElement("div", { style: styles.authPage },
+                React.createElement("style", null, fontImports),
+                React.createElement("div", { style: styles.authCard },
+                    React.createElement("div", { style: styles.authHeader },
+                        React.createElement("div", { style: styles.tower },
+                            React.createElement(Plane, { size: 20, color: "#0F1428" })),
+                        React.createElement("div", null,
+                            React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
+                            React.createElement("p", { style: styles.subtitle }, "Entrar no sistema"))),
+                    React.createElement("div", { style: styles.form },
+                        React.createElement("button", { type: "button", style: styles.addButton, onClick: () => setAccessChoice("owner") },
+                            React.createElement(LockIcon, { size: 16 }),
+                            " Sou o administrador"),
+                        React.createElement("button", { type: "button", style: Object.assign(Object.assign({}, styles.addButton), { background: "transparent", color: "#F2F0E9", border: "1px solid #2A3358" }), onClick: () => setAccessChoice("parceiro") },
+                            React.createElement(Users, { size: 16 }),
+                            " Sou parceiro")))));
+        }
+        // TELA 2b — login do administrador
+        if (accessChoice === "owner") {
+            return (React.createElement("div", { style: styles.authPage },
+                React.createElement("style", null, fontImports),
+                React.createElement("div", { style: styles.authCard },
+                    React.createElement("div", { style: styles.authHeader },
+                        React.createElement("div", { style: styles.tower },
+                            React.createElement(Plane, { size: 20, color: "#0F1428" })),
+                        React.createElement("div", null,
+                            React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
+                            React.createElement("p", { style: styles.subtitle }, "Login do administrador"))),
+                    React.createElement("div", { style: styles.form },
+                        React.createElement(Field, { label: "Email" },
+                            React.createElement("input", { style: styles.input, type: "email", value: loginForm.email, onChange: (e) => setLoginForm(Object.assign(Object.assign({}, loginForm), { email: e.target.value })) })),
+                        React.createElement(Field, { label: "Senha" },
+                            React.createElement("input", { style: styles.input, type: "password", value: loginForm.senha, onChange: (e) => setLoginForm(Object.assign(Object.assign({}, loginForm), { senha: e.target.value })) })),
+                        loginError && React.createElement("div", { style: styles.errorText }, loginError),
+                        React.createElement("button", { type: "button", onClick: login, style: styles.addButton },
+                            React.createElement(LockIcon, { size: 16 }),
+                            " Entrar")),
+                    React.createElement("div", { style: styles.authFooterNote },
+                        !confirmReset ? (React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setConfirmReset(true) }, "Esqueci minha senha")) : (React.createElement("span", null,
+                            "Isso vai apagar o cadastro do dono (n\u00E3o apaga opera\u00E7\u00F5es nem titulares).",
+                            " ",
+                            React.createElement("button", { type: "button", style: styles.inlineLink, onClick: resetOwner }, "Confirmar"),
+                            " · ",
+                            React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setConfirmReset(false) }, "Cancelar"))),
+                        " · ",
+                        React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setAccessChoice(null) }, "Voltar")))));
+        }
+        // TELA 2c — acesso do parceiro: login ou autocadastro, por email
         if (parceiroAuthMode === "cadastro") {
             return (React.createElement("div", { style: styles.authPage },
                 React.createElement("style", null, fontImports),
                 React.createElement("div", { style: styles.authCard },
                     React.createElement("div", { style: styles.authHeader },
                         React.createElement("div", { style: styles.tower },
-                            React.createElement(Robot, { size: 20, color: "#0F1428" })),
+                            React.createElement(Plane, { size: 20, color: "#0F1428" })),
                         React.createElement("div", null,
                             React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
                             React.createElement("p", { style: styles.subtitle }, "Criar cadastro de colaborador"))),
@@ -1052,38 +1040,34 @@ function ControleMilhasLatam() {
                     React.createElement("p", { style: styles.authFooterNote },
                         "J\u00E1 tem cadastro?",
                         " ",
-                        React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setParceiroAuthMode("login") }, "Fazer login")))));
+                        React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setParceiroAuthMode("login") }, "Fazer login"),
+                        " · ",
+                        React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setAccessChoice(null) }, "Voltar")))));
         }
-        // TELA 2a — login único: e-mail + senha. A role (admin ou parceiro) é
-        // consultada no cadastro pelo próprio e-mail, nunca escolhida na tela.
         return (React.createElement("div", { style: styles.authPage },
             React.createElement("style", null, fontImports),
             React.createElement("div", { style: styles.authCard },
                 React.createElement("div", { style: styles.authHeader },
                     React.createElement("div", { style: styles.tower },
-                        React.createElement(Robot, { size: 20, color: "#0F1428" })),
+                        React.createElement(Plane, { size: 20, color: "#0F1428" })),
                     React.createElement("div", null,
                         React.createElement("h1", { style: styles.h1 }, "Caiobtravel Viagens"),
-                        React.createElement("p", { style: styles.subtitle }, "Entrar no sistema"))),
-                React.createElement("form", { style: styles.form, onSubmit: handleLogin },
-                    React.createElement(Field, { label: "E-mail" },
-                        React.createElement("input", { style: styles.input, type: "email", autoComplete: "username", value: loginForm.email, onChange: (e) => setLoginForm(Object.assign(Object.assign({}, loginForm), { email: e.target.value })) })),
+                        React.createElement("p", { style: styles.subtitle }, "Login do parceiro"))),
+                React.createElement("div", { style: styles.form },
+                    React.createElement(Field, { label: "Email" },
+                        React.createElement("input", { style: styles.input, type: "email", value: parceiroLoginForm.email, onChange: (e) => setParceiroLoginForm(Object.assign(Object.assign({}, parceiroLoginForm), { email: e.target.value })) })),
                     React.createElement(Field, { label: "Senha" },
-                        React.createElement("input", { style: styles.input, type: "password", autoComplete: "current-password", value: loginForm.senha, onChange: (e) => setLoginForm(Object.assign(Object.assign({}, loginForm), { senha: e.target.value })) })),
-                    loginError && React.createElement("div", { style: styles.errorText }, loginError),
-                    React.createElement("button", { type: "submit", disabled: loginLoading, style: styles.addButton },
+                        React.createElement("input", { style: styles.input, type: "password", value: parceiroLoginForm.senha, onChange: (e) => setParceiroLoginForm(Object.assign(Object.assign({}, parceiroLoginForm), { senha: e.target.value })) })),
+                    parceiroLoginError && React.createElement("div", { style: styles.errorText }, parceiroLoginError),
+                    React.createElement("button", { type: "button", onClick: loginParceiro, style: styles.addButton },
                         React.createElement(LockIcon, { size: 16 }),
-                        " ",
-                        loginLoading ? "Entrando…" : "Entrar")),
-                React.createElement("p", { style: Object.assign(Object.assign({}, styles.authFooterNote), { textAlign: "center" }) },
-                    React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setShowForgotHelp((v) => !v) }, "Esqueci minha senha")),
-                showForgotHelp && React.createElement("div", { style: styles.forgotBox },
-                    React.createElement("p", { style: { margin: "0 0 8px" } }, "Por enquanto a recuperação é feita direto com o administrador do sistema."),
-                    WHATSAPP_URL ? (React.createElement("a", { href: WHATSAPP_URL, target: "_blank", rel: "noreferrer", style: styles.whatsappLink }, "Falar no WhatsApp")) : (React.createElement("p", { style: { margin: 0, color: "#8891B3" } }, "Fale com quem te cadastrou para redefinir sua senha."))),
+                        " Entrar")),
                 React.createElement("p", { style: styles.authFooterNote },
-                    "Quer ceder sua conta e começar a receber pelas suas vendas?",
+                    "Ainda n\u00E3o tem cadastro?",
                     " ",
-                    React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setParceiroAuthMode("cadastro") }, "Criar cadastro")))));
+                    React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setParceiroAuthMode("cadastro") }, "Criar cadastro"),
+                    " · ",
+                    React.createElement("button", { type: "button", style: styles.inlineLink, onClick: () => setAccessChoice(null) }, "Voltar")))));
     }
     return (React.createElement("div", { style: styles.page },
         React.createElement("style", null, fontImports),
@@ -1110,35 +1094,10 @@ function ControleMilhasLatam() {
                     " Contas Livelo (",
                     contasLivelo.length,
                     ")"),
-                React.createElement("button", { style: styles.titularToggle, onClick: () => setShowSheetsPanel((v) => !v) },
-                    React.createElement(SheetIcon, { size: 14 }),
-                    " Planilha"),
-                React.createElement("button", { style: styles.titularToggle, onClick: () => { setAuthed(false); window.storage.delete(OWNER_SESSION_KEY, false).catch(() => { }); } },
+                React.createElement("button", { style: styles.titularToggle, onClick: () => { setAuthed(false); setAccessChoice(null); window.storage.delete(OWNER_SESSION_KEY, false).catch(() => { }); } },
                     React.createElement(LogOut, { size: 14 }),
                     " Sair"),
                 React.createElement("div", { style: styles.savingBadge }, saving ? "salvando…" : "sincronizado"))),
-        showSheetsPanel && (React.createElement("section", { style: styles.titularPanel },
-            React.createElement("div", { style: styles.titularPanelHeader },
-                React.createElement("span", { style: styles.ticketEyebrow }, "PLANILHA GOOGLE SHEETS"),
-                React.createElement("button", { style: styles.closeBtn, onClick: () => setShowSheetsPanel(false), "aria-label": "Fechar" },
-                    React.createElement(X, { size: 16 }))),
-            React.createElement("div", { style: { padding: "0 20px 20px", fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#B9BEDC", lineHeight: 1.7 } },
-                React.createElement("p", { style: { margin: "8px 0 14px" } }, "Cole aqui o link do Google Apps Script (webhook) da sua planilha. Toda vez que uma comiss\u00E3o for lan\u00E7ada, os dados (parceiro, tipo, valor, indicado e data) s\u00e3o enviados automaticamente para a planilha."),
-                React.createElement("input", { style: styles.input, value: sheetsWebhook, onChange: (e) => setSheetsWebhook(e.target.value), placeholder: "https://script.google.com/macros/s/SEU_ID/exec" }),
-                React.createElement("button", { type: "button", style: Object.assign(Object.assign({}, styles.addButton), { marginTop: 10 }), onClick: () => { localStorage.setItem(SHEETS_WEBHOOK_KEY, sheetsWebhook.trim()); setSheetsSavedMsg("Link salvo!"); setTimeout(() => setSheetsSavedMsg(""), 2000); } },
-                    React.createElement(SheetIcon, { size: 14 }),
-                    " Salvar link"),
-                sheetsSavedMsg && React.createElement("div", { style: { color: "#7FD8C4", marginTop: 8 } }, sheetsSavedMsg),
-                React.createElement("div", { style: { marginTop: 20, padding: 14, background: "#0F1428", borderRadius: 8 } },
-                    React.createElement("div", { style: { color: "#F2F0E9", marginBottom: 8, fontWeight: 600 } }, "Como criar o link (uma vez s\u00f3):"),
-                    React.createElement("ol", { style: { margin: 0, paddingLeft: 18 } },
-                        React.createElement("li", null, "Crie uma planilha nova no Google Sheets."),
-                        React.createElement("li", null, "V\u00e1 em Extens\u00f5es \u2192 Apps Script."),
-                        React.createElement("li", null, "Apague o c\u00f3digo padr\u00e3o e cole o script que o Claude te passou."),
-                        React.createElement("li", null, "Clique em Implantar \u2192 Nova implanta\u00e7\u00e3o \u2192 tipo \"Aplicativo da Web\"."),
-                        React.createElement("li", null, "Em \"Quem tem acesso\", escolha \"Qualquer pessoa\"."),
-                        React.createElement("li", null, "Implante, autorize o acesso e copie o link gerado (termina em /exec)."),
-                        React.createElement("li", null, "Cole esse link no campo acima e clique em Salvar link.")))))),
         showContasLivelo && (React.createElement("section", { style: styles.titularPanel },
             React.createElement("div", { style: styles.titularPanelHeader },
                 React.createElement("span", { style: styles.ticketEyebrow }, "CONTAS LIVELO"),
@@ -1232,8 +1191,7 @@ function ControleMilhasLatam() {
                         React.createElement("option", { value: "cadastro" }, "Cadastro (R$50)"),
                         React.createElement("option", { value: "indicacao" }, "Indica\u00E7\u00E3o (R$10)")),
                     React.createElement("input", { style: styles.input, type: "number", step: "0.01", value: comissaoForm.valor, onChange: (e) => setComissaoForm(Object.assign(Object.assign({}, comissaoForm), { valor: e.target.value })), placeholder: "Valor (R$)" }),
-                    React.createElement("input", { style: styles.input, type: "date", value: comissaoForm.data, onChange: (e) => setComissaoForm(Object.assign(Object.assign({}, comissaoForm), { data: e.target.value })) }),
-                    React.createElement("input", { style: styles.input, type: "text", value: comissaoForm.nomeIndicado, onChange: (e) => setComissaoForm(Object.assign(Object.assign({}, comissaoForm), { nomeIndicado: e.target.value })), placeholder: "Nome do indicado" })),
+                    React.createElement("input", { style: styles.input, type: "date", value: comissaoForm.data, onChange: (e) => setComissaoForm(Object.assign(Object.assign({}, comissaoForm), { data: e.target.value })) })),
                 comissaoError && React.createElement("div", { style: styles.errorText }, comissaoError),
                 React.createElement("button", { type: "button", onClick: addComissao, style: Object.assign(Object.assign({}, styles.addButton), { marginTop: 10 }) },
                     React.createElement(Plus, { size: 16 }),
@@ -1250,7 +1208,7 @@ function ControleMilhasLatam() {
                                 c.tipo === "cadastro" ? "Cadastro" : "Indicação",
                                 " \u00B7 ",
                                 fmtBRL(c.valor)),
-                            React.createElement("div", { style: styles.titularCpf }, c.data + (c.nomeIndicado ? " \u00B7 indicado: " + c.nomeIndicado : ""))),
+                            React.createElement("div", { style: styles.titularCpf }, c.data)),
                         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
                             React.createElement("button", { type: "button", style: Object.assign(Object.assign(Object.assign({}, styles.statusTag), (c.pago ? styles.statusPago : styles.statusPendente)), { cursor: "pointer", border: "1px solid " + (c.pago ? "rgba(127,216,196,0.4)" : "rgba(232,96,76,0.4)"), background: "transparent" }), onClick: () => toggleComissaoPaga(c.id) }, c.pago ? "Pago" : "Pendente"),
                             React.createElement("button", { style: styles.deleteBtn, onClick: () => removeComissao(c.id), "aria-label": "Excluir comiss\u00E3o" },
@@ -1438,14 +1396,6 @@ const styles = {
     authHeader: { display: "flex", alignItems: "center", gap: 12, marginBottom: 14 },
     authHint: { fontSize: 12.5, color: "#8891B3", lineHeight: 1.5, margin: "0 0 14px" },
     authFooterNote: { fontSize: 11.5, color: "#8891B3", marginTop: 12, lineHeight: 1.5 },
-    forgotBox: {
-        background: "#0F1428", border: "1px solid #2A3358", borderRadius: 10,
-        padding: 12, marginTop: 8, fontSize: 12, color: "#F2F0E9", lineHeight: 1.5,
-    },
-    whatsappLink: {
-        display: "inline-flex", alignItems: "center", gap: 6,
-        color: "#7FD8C4", fontWeight: 600, textDecoration: "none", fontSize: 12.5,
-    },
     header: {
         display: "flex",
         alignItems: "center",
